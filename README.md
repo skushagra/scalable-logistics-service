@@ -1,85 +1,128 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Atlan Internship Assignment
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+According to the problem statement document we have the following main parts which will be independent microservices.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Booking Service
 
-## Description
+This service will handle user bookinng related activities.
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+```tsx
+type Location = {
+	latitude: number,
+	longitude: number
+};
 
-## Project setup
+type VehicleType = "Truck" | "Tempo" | "Jeep" | "Auto"
 
-```bash
-$ npm install
+type BookingStatus = "en Route to Pickup" |
+												"Collecting Goods" |
+												"Goods Collected" |
+												"en Route to Delivery" |
+												"Delivered"
+
+type Booking = {
+	pickupLocation: Location,
+	dropLocation: Location,
+	typeOfVehicle: VehicleType,
+	estimatedCost: number
+	assignedDriver: DriverID,
+	pickupTime: DateTime
+	dropOfTime: DateTime
+	status: BookingStatus
+}
 ```
 
-## Compile and run the project
+booking detials
 
-```bash
-# development
-$ npm run start
+Endpoints
 
-# watch mode
-$ npm run start:dev
+`GET /api/v0/book/<booking_id>` : Gets booking by booking ID.
 
-# production mode
-$ npm run start:prod
+`POST /api/v0/book` : Create a booking with payload
+
+```tsx
+{
+	"userID": UserID,
+	"booking": Booking
+}
 ```
 
-## Run tests
+---
 
-```bash
-# unit tests
-$ npm run test
+## Search Service
 
-# e2e tests
-$ npm run test:e2e
+Search service will work on a read only database copy of the orignal database and will prioritise fast reads for querying data. This server will also calculate the extimated prices based on input paramerters.
 
-# test coverage
-$ npm run test:cov
+The searches will have the following paramerters
+
+```tsx
+{
+ "pickupLocation": Location,
+ "dropLocation": Location,
+ "vehicleType": VehicleType
+ "searchRadius": number,
+}
 ```
 
-## Resources
+I will use the Google Distance Matrix API to effectively compute accurate distance between the `pickup` and and `drop` locations. We need simple HTTP calls for this and will therefore not store these deatils in out DB.
 
-Check out a few resources that may come in handy when working with NestJS:
+### Cost Finding Algorithm
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+To effectively calculate the cost for the booking will depend on the following factors
 
-## Support
+1. Distance and duration from `pickup` to `drop` 
+2. Type of vehicle offered
+3. Distance to pickup
+4. Current demand
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+However a base price can only be calculated based on the first three and Current Demand shall only we used to determine the price elasticity of the product.
 
-## Stay in touch
+For the purpose of this assignment I will use the algorithm given below to calculate the price of a booking
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+```python
+def getTotalBasePrice(distance: float, duration: float, baseMultiplier: int) -> float:
+	speed = distance/duration
+	return speed*baseMultiplier
 
-## License
+def checkSurge(pickup: Location, totalPrice: float) -> float:
+	# checks surge at this pickup
+	
+	surgePrice = totalPrice
+	
+	return surgePrice
+	
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+def calculatePrice(pickup: Location, drop: Location, vehicle: VehicleType) -> float:
+    # Using Google Distance Matrix to get the distance and duration
+    distance, duration = getDistanceDuration(pickup, drop, vehicle)
+    
+    # I will just calculate the speed and take base price as INR 100 per unit speed.
+    totalPrice = getTotalBasePrice(distance, duration, 100)
+    
+    # Surge price calculation
+    totalPrice = checkSurge(pickup, totalPrice)
+    
+    return totalPrice
+```
+
+### How is Surge Pricing Calculated
+
+Currently I have skipped the part of implementing surge pricing it is a part of the project that would possibly require some big choices in `Data Structure and Algorithm`
+
+### Optimizing Frequent Search Queries
+
+Given the nature of the application it does not feel relavent to use caching. We need to implement some data structure like QuadTree(used by Uber) to optimize search queries.
+
+---
+
+## Real Time Location Service
+
+I will create a service to manage real time data. This service will listen on requests to puts these events into a queue which will be updataed across the database.
+
+---
+
+## Ananlytics Service
+
+We will have an analytics service which will generate analytics data for the driver performance, bookings data and user activity.
+
+---
